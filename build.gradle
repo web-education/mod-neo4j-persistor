@@ -10,6 +10,16 @@ test {
 	include 'com/wse/neo4j/test/*'
 }
 
+repositories {
+  maven {
+    credentials {
+      username 'admin'
+      password 'We_1234'
+    }
+    url "http://maven.web-education.net:8081/nexus/content/groups/public"
+  }
+}
+
 def configurePom(def pom) {
 	pom.project {
 		description 'Neo4j Persitor BusMod for Vert.x'
