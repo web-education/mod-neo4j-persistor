@@ -5,7 +5,6 @@ import java.net.URI;
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.Vertx;
 import org.vertx.java.core.buffer.Buffer;
-import org.vertx.java.core.eventbus.Message;
 import org.vertx.java.core.http.HttpClient;
 import org.vertx.java.core.http.HttpClientRequest;
 import org.vertx.java.core.http.HttpClientResponse;
@@ -107,36 +106,6 @@ public class Neo4jRest implements GraphDatabase {
 				}
 			}
 		});
-	}
-
-	@Override
-	public void batchInsert(String query, final Handler<JsonObject> handler) {
-		JsonObject body = new JsonObject().putArray("subgraph", new JsonArray().add(query));
-		logger.debug(body.encode());
-		sendRequest("/ext/GeoffPlugin/graphdb/insert", body, new Handler<HttpClientResponse>() {
-
-			@Override
-			public void handle(final HttpClientResponse resp) {
-				if (resp.statusCode() != 404 && resp.statusCode() != 500) {
-					resp.bodyHandler(new Handler<Buffer>() {
-
-						@Override
-						public void handle(Buffer b) {
-							logger.debug(b.toString());
-							JsonObject json = new JsonObject(b.toString("UTF-8"));
-							handler.handle(json);
-						}
-					});
-				} else {
-					handler.handle(new JsonObject().putString("message", resp.statusMessage()));
-				}
-			}
-		});
-	}
-
-	@Override
-	public void executeMultiple(Message<JsonObject> message) {
-		throw new UnsupportedOperationException("Not implemented yet.");
 	}
 
 	@Override

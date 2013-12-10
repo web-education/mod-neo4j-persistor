@@ -50,12 +50,6 @@ public class Neo4jPersistor extends BusModBase implements Handler<Message<JsonOb
 			case "executeBatch" :
 				executeBatch(m);
 				break;
-			case "executeMultiple" :
-				db.executeMultiple(m);
-				break;
-			case "batch-insert" :
-				batchInsert(m);
-				break;
 			default :
 				sendError(m, "Invalid or missing action");
 		}
@@ -67,10 +61,6 @@ public class Neo4jPersistor extends BusModBase implements Handler<Message<JsonOb
 
 	private void execute(final Message<JsonObject> m) {
 		db.execute(m.body().getString("query"), m.body().getObject("params"), resultHandler(m));
-	}
-
-	private void batchInsert(Message<JsonObject> m) {
-		db.batchInsert(m.body().getString("query"), resultHandler(m));
 	}
 
 	private Handler<JsonObject> resultHandler(final Message<JsonObject> m) {
