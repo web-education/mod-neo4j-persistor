@@ -10,6 +10,13 @@ public interface GraphDatabase {
 
 	void executeBatch(JsonArray queries, Handler<JsonObject> handler);
 
+	void executeTransaction(JsonArray statements, Integer transactionId,
+							boolean commit, Handler<JsonObject> handler);
+
+	void resetTransactionTimeout(int transactionId, Handler<JsonObject> handler);
+
+	void rollbackTransaction(int transactionId, Handler<JsonObject> handler);
+
 	void close();
 
 }

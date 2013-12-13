@@ -56,7 +56,7 @@ public class Neo4jRest implements GraphDatabase {
 							logger.debug(b.toString());
 							JsonObject json = new JsonObject(b.toString("UTF-8"));
 							if (resp.statusCode() == 200) {
-								handler.handle(transformJson(json));
+								handler.handle(new JsonObject().putArray("result", transformJson(json)));
 							} else {
 								handler.handle(json);
 							}
@@ -95,7 +95,8 @@ public class Neo4jRest implements GraphDatabase {
 							JsonArray out = new JsonArray();
 							for (Object j : json) {
 								JsonObject qr = (JsonObject) j;
-								out.add(transformJson(qr.getObject("body", new JsonObject()))
+								out.add(new JsonObject().putArray("result",
+										transformJson(qr.getObject("body", new JsonObject())))
 									.putNumber("idx", qr.getNumber("id")));
 							}
 							handler.handle(new JsonObject().putArray("results", out));
@@ -109,23 +110,115 @@ public class Neo4jRest implements GraphDatabase {
 	}
 
 	@Override
+	public void executeTransaction(JsonArray statements, Integer transactionId,
+			boolean commit, final Handler<JsonObject> handler) {
+		String uri = "/transaction";
+		if (transactionId != null) {
+			uri += "/" +transactionId;
+		}
+		if (commit) {
+			uri += "/commit";
+		}
+		sendRequest(uri, new JsonObject().putArray("statements", statements), new Handler<HttpClientResponse>() {
+			@Override
+			public void handle(HttpClientResponse resp) {
+				if (resp.statusCode() != 404 && resp.statusCode() != 500) {
+					resp.bodyHandler(new Handler<Buffer>() {
+
+						@Override
+						public void handle(Buffer b) {
+							logger.debug(b.toString());
+							JsonObject json = new JsonObject(b.toString("UTF-8"));
+							JsonArray results = json.getArray("results");
+							if (json.getArray("errors", new JsonArray()).size() == 0 &&
+									results != null) {
+								JsonArray out = new JsonArray();
+								for (Object o : results) {
+									if (!(o instanceof JsonObject)) continue;
+									out.add(transformJson((JsonObject) o));
+								}
+								json.putArray("results", out);
+								String commit = json.getString("commit");
+								if (commit != null) {
+									String[] c = commit.split("/");
+									if (c.length > 2) {
+										json.putNumber("transactionId", Integer.parseInt(c[c.length - 2]));
+									}
+								}
+								json.removeField("errors");
+								handler.handle(json);
+							} else {
+								handler.handle(new JsonObject().putString("message",
+										json.getArray("errors", new JsonArray()).encode()));
+							}
+						}
+					});
+				} else {
+					handler.handle(new JsonObject().putString("message", resp.statusMessage()));
+				}
+			}
+		});
+	}
+
+	@Override
+	public void resetTransactionTimeout(int transactionId, Handler<JsonObject> handler) {
+		executeTransaction(new JsonArray(), transactionId, false, handler);
+	}
+
+	@Override
+	public void rollbackTransaction(int transactionId, final Handler<JsonObject> handler) {
+		HttpClientRequest req = client.delete(basePath + "/transaction/" + transactionId, new Handler<HttpClientResponse>() {
+			@Override
+			public void handle(HttpClientResponse resp) {
+				if (resp.statusCode() != 404 && resp.statusCode() != 500) {
+					resp.bodyHandler(new Handler<Buffer>() {
+
+						@Override
+						public void handle(Buffer b) {
+							logger.debug(b.toString());
+							JsonObject json = new JsonObject(b.toString("UTF-8"));
+							if (json.getArray("errors", new JsonArray()).size() == 0) {
+								json.removeField("errors");
+								handler.handle(json);
+							} else {
+								handler.handle(new JsonObject().putString("message",
+										json.getArray("errors", new JsonArray()).encode()));
+							}
+						}
+					});
+				} else {
+					handler.handle(new JsonObject().putString("message", resp.statusMessage()));
+				}
+			}
+		});
+		req.headers().add("Accept", "application/json; charset=UTF-8");
+		req.end();
+	}
+
+	@Override
 	public void close() {
 		if (client != null) {
 			client.close();
 		}
 	}
 
-	private JsonObject transformJson(JsonObject json) {
+	private JsonArray transformJson(JsonObject json) {
 		final JsonArray columns = json.getArray("columns");
 		final JsonArray data = json.getArray("data");
-		final JsonObject out = new JsonObject();
+		final JsonArray out = new JsonArray();
 
 		if (data != null && columns != null) {
-			int i = 0;
 			for (Object r: data) {
-				JsonArray row = (JsonArray) r;
+				JsonArray row;
+				if (r instanceof JsonArray) {
+					row = (JsonArray) r;
+				} else if (r instanceof JsonObject) {
+					row = ((JsonObject) r).getArray("row");
+				} else {
+					continue;
+				}
 				JsonObject outRow = new JsonObject();
-				out.putObject(String.valueOf(i++), outRow);
+				out.addObject(outRow);
 				for (int j = 0; j < row.size(); j++) {
 					Object value = row.get(j);
 					if (value instanceof String) {
@@ -141,7 +234,7 @@ public class Neo4jRest implements GraphDatabase {
 				}
 			}
 		}
-		return new JsonObject().putObject("result", out);
+		return out;
 	}
 
 	private void sendRequest(String path, JsonElement body, final Handler<HttpClientResponse> handler) {

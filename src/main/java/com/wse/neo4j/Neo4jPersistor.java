@@ -50,6 +50,15 @@ public class Neo4jPersistor extends BusModBase implements Handler<Message<JsonOb
 			case "executeBatch" :
 				executeBatch(m);
 				break;
+			case "executeTransaction" :
+				executeTransaction(m);
+				break;
+			case "resetTransactionTimeout" :
+				resetTransaction(m);
+				break;
+			case "rollbackTransaction" :
+				rollbackTransaction(m);
+				break;
 			default :
 				sendError(m, "Invalid or missing action");
 		}
@@ -61,6 +70,32 @@ public class Neo4jPersistor extends BusModBase implements Handler<Message<JsonOb
 
 	private void execute(final Message<JsonObject> m) {
 		db.execute(m.body().getString("query"), m.body().getObject("params"), resultHandler(m));
+	}
+
+	private void executeTransaction(Message<JsonObject> m) {
+		if (m.body().getArray("statements") == null) {
+			sendError(m, "Invalid statements.");
+			return;
+		}
+		db.executeTransaction(m.body().getArray("statements"),
+				m.body().getInteger("transactionId"),
+				m.body().getBoolean("commit", false), resultHandler(m));
+	}
+
+	private void resetTransaction(Message<JsonObject> m) {
+		if (m.body().getInteger("transactionId") == null) {
+			sendError(m, "Invalid transaction id.");
+			return;
+		}
+		db.resetTransactionTimeout(m.body().getInteger("transactionId"), resultHandler(m));
+	}
+
+	private void rollbackTransaction(Message<JsonObject> m) {
+		if (m.body().getInteger("transactionId") == null) {
+			sendError(m, "Invalid transaction id.");
+			return;
+		}
+		db.rollbackTransaction(m.body().getInteger("transactionId"), resultHandler(m));
 	}
 
 	private Handler<JsonObject> resultHandler(final Message<JsonObject> m) {

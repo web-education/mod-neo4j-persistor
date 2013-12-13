@@ -6,6 +6,7 @@ import java.util.Map;
 import org.neo4j.cypher.javacompat.ExecutionEngine;
 import org.neo4j.cypher.javacompat.ExecutionResult;
 import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.factory.GraphDatabaseBuilder;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 import org.neo4j.graphdb.factory.GraphDatabaseSettings;
@@ -47,8 +48,7 @@ public class Neo4jEmbedded implements GraphDatabase {
 		} catch (Exception e) {
 			handler.handle(ExceptionUtils.exceptionToJson(e));
 		}
-		JsonObject json = toJson(result);
-		handler.handle(json);
+		handler.handle(new JsonObject().putArray("result",toJson(result)));
 	}
 
 	@Override
@@ -66,13 +66,53 @@ public class Neo4jEmbedded implements GraphDatabase {
 				} else {
 					result = engine.execute(query);
 				}
-				results.addObject(toJson(result).putNumber("idx", i++));
+				results.addObject(new JsonObject().putArray("result", toJson(result))
+						.putNumber("idx", i++));
 			}
 		} catch (Exception e) {
 			handler.handle(ExceptionUtils.exceptionToJson(e));
 		}
 		JsonObject json = new JsonObject().putArray("results", results);
 		handler.handle(json);
+	}
+
+	@Override
+	public void executeTransaction(JsonArray statements, Integer transactionId,
+			boolean commit, Handler<JsonObject> handler) {
+		ExecutionResult result;
+		try (Transaction tx = gdb.beginTx()) {
+			JsonArray results = new JsonArray();
+			for (Object o : statements) {
+				if (!(o instanceof JsonObject)) continue;
+				JsonObject qr = (JsonObject) o;
+				String statement = qr.getString("statement");
+				JsonObject params = qr.getObject("parameters");
+				if (params != null){
+					result = engine.execute(statement, params.toMap());
+				} else {
+					result = engine.execute(statement);
+				}
+				results.addArray(toJson(result));
+			}
+			tx.success();
+			JsonObject json = new JsonObject().putArray("results", results);
+			if (!commit) {
+				json.putNumber("transactionId", 0);
+			}
+			handler.handle(json);
+		} catch (Exception e) {
+			handler.handle(ExceptionUtils.exceptionToJson(e));
+		}
+	}
+
+	@Override
+	public void resetTransactionTimeout(int transactionId, Handler<JsonObject> handler) {
+		handler.handle(new JsonObject());
+	}
+
+	@Override
+	public void rollbackTransaction(int transactionId, Handler<JsonObject> handler) {
+		handler.handle(new JsonObject());
 	}
 
 	@Override
@@ -83,16 +123,14 @@ public class Neo4jEmbedded implements GraphDatabase {
 	}
 
 	@SuppressWarnings("unchecked")
-	private JsonObject toJson (ExecutionResult result) {
-		JsonObject json = new JsonObject();
-		// TODO avoid "if null programming"
+	private JsonArray toJson (ExecutionResult result) {
+		JsonArray json = new JsonArray();
 		if (result == null) {
 			return json;
 		}
-		int i = 0;
 		for (Map<String, Object> row : result) {
 				JsonObject jsonRow = new JsonObject();
-				json.putObject(String.valueOf(i++), jsonRow);
+				json.addObject(jsonRow);
 			for (Map.Entry<String, Object> column : row.entrySet()) {
 				Object v = column.getValue();
 				if (v instanceof Iterable) {
@@ -103,7 +141,7 @@ public class Neo4jEmbedded implements GraphDatabase {
 				}
 			}
 		}
-		return new JsonObject().putObject("result", json) ;
+		return json;
 	}
 
 }
