@@ -227,6 +227,8 @@ public class Neo4jRest implements GraphDatabase {
 						outRow.putArray((String) columns.get(j), (JsonArray) value);
 					} else if (value instanceof JsonObject) {
 						outRow.putObject((String) columns.get(j), (JsonObject) value);
+					} else if (value instanceof Boolean) {
+						outRow.putBoolean((String) columns.get(j), (Boolean) value);
 					} else {
 						String v = (value == null) ? "" : value.toString();
 						outRow.putString((String) columns.get(j), v);

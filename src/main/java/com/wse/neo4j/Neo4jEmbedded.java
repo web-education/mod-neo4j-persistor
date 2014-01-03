@@ -137,6 +137,8 @@ public class Neo4jEmbedded implements GraphDatabase {
 					jsonRow.putArray(column.getKey(), new JsonArray((List<Object>) v));
 				} else if (v != null && v.getClass().isArray()) {
 					jsonRow.putArray(column.getKey(), new JsonArray((Object[]) v));
+				} else if (v instanceof Boolean) {
+					jsonRow.putBoolean(column.getKey(), (Boolean) v);
 				} else {
 					String value = (v == null) ? "" : v.toString();
 					jsonRow.putString(column.getKey(), value);
