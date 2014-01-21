@@ -27,20 +27,20 @@ def configurePom(def pom) {
 
 		developers {
 			developer {
-				id 'rafik.djedjig'
-				name 'Rafik Djedjig'
-				email 'rafik.djedjig@web-educcation.net'
+				id 'dboissin'
+				name 'Damien BOISSIN'
+				email 'damien.boissin@web-educcation.net'
 			}
 		}
 
 		scm {
-			url 'git@code.web-education.net:one/one-core.git'
+			url 'git@github.com:web-education/mod-neo4j-persistor.git'
 		}
 
 		licenses {
 			license {
-				name 'GNU Affero General Public License, Version 2.0'
-				url 'https://www.gnu.org/licenses/agpl.txt'
+        name 'GNU Lesser General Public License'
+        url 'http://www.gnu.org/licenses/lgpl-3.0.txt'
 				distribution 'repo'
 			}
 		}
