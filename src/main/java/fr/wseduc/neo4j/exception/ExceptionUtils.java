@@ -1,4 +1,4 @@
-package com.wse.neo4j.exception;
+package fr.wseduc.neo4j.exception;
 
 import org.vertx.java.core.json.JsonArray;
 import org.vertx.java.core.json.JsonObject;

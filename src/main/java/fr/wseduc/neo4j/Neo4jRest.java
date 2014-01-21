@@ -1,4 +1,4 @@
-package com.wse.neo4j;
+package fr.wseduc.neo4j;
 
 import java.net.URI;
 

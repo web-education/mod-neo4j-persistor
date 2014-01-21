@@ -1,4 +1,4 @@
-package com.wse.neo4j;
+package fr.wseduc.neo4j;
 
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.json.JsonArray;

@@ -1,4 +1,4 @@
-package com.wse.neo4j;
+package fr.wseduc.neo4j;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -13,7 +13,6 @@ public class Neo4jPersistor extends BusModBase implements Handler<Message<JsonOb
 
 	private GraphDatabase db;
 
-	// TODO : write a config loader that merge standard conf with mode (dev,test,prod)) conf
 	@Override
 	public void start() {
 		super.start();
@@ -30,7 +29,7 @@ public class Neo4jPersistor extends BusModBase implements Handler<Message<JsonOb
 		}
 
 		eb.registerHandler(config.getString("address"),this);
-		logger.info("BusModBase: Neo4jPertistor  starts on address: " + config.getString("address"));
+		logger.info("BusModBase: Neo4jPersistor starts on address: " + config.getString("address"));
 	}
 
 	@Override
@@ -107,8 +106,7 @@ public class Neo4jPersistor extends BusModBase implements Handler<Message<JsonOb
 				if (error == null) {
 					sendOK(m, res);
 				} else {
-					logger.error(res.getString("exception") + " : " + error);// "\\n" +
-							//res.getArray("stacktrace").encode());
+					logger.error(res.getString("exception") + " : " + error);
 					sendError(m, error);
 				}
 			}

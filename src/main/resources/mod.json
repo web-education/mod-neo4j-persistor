@@ -1,5 +1,5 @@
 {
-	"main" : "com.wse.neo4j.Neo4jPersistor",
+	"main" : "fr.wseduc.neo4j.Neo4jPersistor",
 	"worker": true,
 	"preserve-cwd" : true,
 	"address" : "wse.neo4j.persistor",

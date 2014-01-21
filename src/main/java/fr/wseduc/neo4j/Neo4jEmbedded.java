@@ -1,4 +1,4 @@
-package com.wse.neo4j;
+package fr.wseduc.neo4j;
 
 import java.util.List;
 import java.util.Map;
@@ -15,7 +15,7 @@ import org.vertx.java.core.json.JsonArray;
 import org.vertx.java.core.json.JsonObject;
 import org.vertx.java.core.logging.Logger;
 
-import com.wse.neo4j.exception.ExceptionUtils;
+import fr.wseduc.neo4j.exception.ExceptionUtils;
 
 public class Neo4jEmbedded implements GraphDatabase {
 
