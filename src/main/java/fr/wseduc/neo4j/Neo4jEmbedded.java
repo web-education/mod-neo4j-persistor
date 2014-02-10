@@ -39,24 +39,27 @@ public class Neo4jEmbedded implements GraphDatabase {
 
 	@Override
 	public void execute(String query, JsonObject params, Handler<JsonObject> handler) {
-		ExecutionResult result = null;
-		try {
+		ExecutionResult result;
+		try (Transaction tx = gdb.beginTx()) {
 			if (params != null){
 				result = engine.execute(query, params.toMap());
 			} else {
 				result = engine.execute(query);
 			}
+			JsonObject json = new JsonObject().putArray("result",toJson(result));
+			tx.success();
+			handler.handle(json);
 		} catch (Exception e) {
+			logger.error(e.getMessage(), e);
 			handler.handle(ExceptionUtils.exceptionToJson(e));
 		}
-		handler.handle(new JsonObject().putArray("result",toJson(result)));
 	}
 
 	@Override
 	public void executeBatch(JsonArray queries, Handler<JsonObject> handler) {
 		ExecutionResult result;
-		JsonArray results = new JsonArray();
-		try {
+		try (Transaction tx = gdb.beginTx()) {
+			JsonArray results = new JsonArray();
 			int i = 0;
 			for (Object q: queries) {
 				JsonObject qr = (JsonObject) q;
@@ -70,11 +73,13 @@ public class Neo4jEmbedded implements GraphDatabase {
 				results.addObject(new JsonObject().putArray("result", toJson(result))
 						.putNumber("idx", i++));
 			}
+			JsonObject json = new JsonObject().putArray("results", results);
+			tx.success();
+			handler.handle(json);
 		} catch (Exception e) {
+			logger.error(e.getMessage(), e);
 			handler.handle(ExceptionUtils.exceptionToJson(e));
 		}
-		JsonObject json = new JsonObject().putArray("results", results);
-		handler.handle(json);
 	}
 
 	@Override
@@ -135,23 +140,34 @@ public class Neo4jEmbedded implements GraphDatabase {
 			for (Map.Entry<String, Object> column : row.entrySet()) {
 				Object v = column.getValue();
 				if (v instanceof Node) {
-					JsonObject data = new JsonObject();
-					try (Transaction tx = gdb.beginTx()) {
-						Node n = (Node) v;
-						for (String prop : n.getPropertyKeys()) {
-							propertyToJson(data, prop, n.getProperty(prop));
-						}
-						tx.success();
-						jsonRow.putObject(column.getKey(), new JsonObject().putObject("data", data));
-					} catch (Exception e) {
-						logger.error(e.getMessage(), e);
+					JsonObject nodeJson = nodeToJsonObject((Node) v);
+					jsonRow.putObject(column.getKey(), nodeJson);
+				} else if (isNodeArray(v)) {
+					Node[] nodes;
+					if (v instanceof Iterable) {
+						nodes = ((List<Node>) v).toArray(new Node[((List<Node>) v).size()]);
+					} else { //if (v != null && v.getClass().isArray()) {
+						nodes = (Node[]) v;
 					}
+					JsonArray nodesRes = new JsonArray();
+					for (Node n: nodes) {
+						nodesRes.addObject(nodeToJsonObject(n));
+					}
+					jsonRow.putArray(column.getKey(), nodesRes);
 				} else {
 					propertyToJson(jsonRow, column.getKey(), v);
 				}
 			}
 		}
 		return json;
+	}
+
+	private JsonObject nodeToJsonObject(Node n) {
+		JsonObject data = new JsonObject();
+		for (String prop : n.getPropertyKeys()) {
+			propertyToJson(data, prop, n.getProperty(prop));
+		}
+		return new JsonObject().putObject("data", data);
 	}
 
 	private void propertyToJson(JsonObject jsonRow, String column, Object v) {
@@ -167,6 +183,16 @@ public class Neo4jEmbedded implements GraphDatabase {
 			String value = (v == null) ? "" : v.toString();
 			jsonRow.putString(column, value);
 		}
+	}
+
+	private boolean isNodeArray(Object o) {
+		Object[] objects = null;
+		if (o instanceof Iterable) {
+			objects = ((List<Object>) o).toArray();
+		} else if (o != null && o.getClass().isArray()) {
+			objects = (Object[]) o;
+		}
+		return objects != null && objects.length > 0 && objects[0] instanceof Node;
 	}
 
 }
