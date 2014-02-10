@@ -6,6 +6,7 @@ import java.util.Map;
 import org.neo4j.cypher.javacompat.ExecutionEngine;
 import org.neo4j.cypher.javacompat.ExecutionResult;
 import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.factory.GraphDatabaseBuilder;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
@@ -133,21 +134,39 @@ public class Neo4jEmbedded implements GraphDatabase {
 				json.addObject(jsonRow);
 			for (Map.Entry<String, Object> column : row.entrySet()) {
 				Object v = column.getValue();
-				if (v instanceof Iterable) {
-					jsonRow.putArray(column.getKey(), new JsonArray((List<Object>) v));
-				} else if (v != null && v.getClass().isArray()) {
-					jsonRow.putArray(column.getKey(), new JsonArray((Object[]) v));
-				} else if (v instanceof Boolean) {
-					jsonRow.putBoolean(column.getKey(), (Boolean) v);
-				} else if (v instanceof Number) {
-					jsonRow.putNumber(column.getKey(), (Number) v);
+				if (v instanceof Node) {
+					JsonObject data = new JsonObject();
+					try (Transaction tx = gdb.beginTx()) {
+						Node n = (Node) v;
+						for (String prop : n.getPropertyKeys()) {
+							propertyToJson(data, prop, n.getProperty(prop));
+						}
+						tx.success();
+						jsonRow.putObject(column.getKey(), new JsonObject().putObject("data", data));
+					} catch (Exception e) {
+						logger.error(e.getMessage(), e);
+					}
 				} else {
-					String value = (v == null) ? "" : v.toString();
-					jsonRow.putString(column.getKey(), value);
+					propertyToJson(jsonRow, column.getKey(), v);
 				}
 			}
 		}
 		return json;
+	}
+
+	private void propertyToJson(JsonObject jsonRow, String column, Object v) {
+		if (v instanceof Iterable) {
+			jsonRow.putArray(column, new JsonArray((List<Object>) v));
+		} else if (v != null && v.getClass().isArray()) {
+			jsonRow.putArray(column, new JsonArray((Object[]) v));
+		} else if (v instanceof Boolean) {
+			jsonRow.putBoolean(column, (Boolean) v);
+    } else if (v instanceof Number) {
+      jsonRow.putNumber(column, (Number) v);
+		} else {
+			String value = (v == null) ? "" : v.toString();
+			jsonRow.putString(column, value);
+		}
 	}
 
 }
