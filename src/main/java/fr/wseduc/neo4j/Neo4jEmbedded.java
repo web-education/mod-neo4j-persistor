@@ -139,7 +139,9 @@ public class Neo4jEmbedded implements GraphDatabase {
 				json.addObject(jsonRow);
 			for (Map.Entry<String, Object> column : row.entrySet()) {
 				Object v = column.getValue();
-				if (v instanceof Node) {
+				if (v == null) {
+					jsonRow.putValue(column.getKey(), null);
+				} else if (v instanceof Node) {
 					JsonObject nodeJson = nodeToJsonObject((Node) v);
 					jsonRow.putObject(column.getKey(), nodeJson);
 				} else if (isNodeArray(v)) {

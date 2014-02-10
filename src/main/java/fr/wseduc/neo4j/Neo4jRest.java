@@ -221,7 +221,9 @@ public class Neo4jRest implements GraphDatabase {
 				out.addObject(outRow);
 				for (int j = 0; j < row.size(); j++) {
 					Object value = row.get(j);
-					if (value instanceof String) {
+					if (value == null) {
+						outRow.putValue((String) columns.get(j), null);
+					} else if (value instanceof String) {
 						outRow.putString((String) columns.get(j), (String) value);
 					} else if (value instanceof JsonArray) {
 						outRow.putArray((String) columns.get(j), (JsonArray) value);
@@ -232,8 +234,7 @@ public class Neo4jRest implements GraphDatabase {
 					} else if (value instanceof Number) {
 						outRow.putNumber((String) columns.get(j), (Number) value);
 					} else {
-						String v = (value == null) ? "" : value.toString();
-						outRow.putString((String) columns.get(j), v);
+						outRow.putString((String) columns.get(j), value.toString());
 					}
 				}
 			}
