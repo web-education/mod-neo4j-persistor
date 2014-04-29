@@ -19,7 +19,7 @@ public class Neo4jPersistor extends BusModBase implements Handler<Message<JsonOb
 		String serverUri = config.getString("server-uri");
 		if (serverUri != null && !serverUri.trim().isEmpty()) {
 			try {
-				db = new Neo4jRest(new URI(serverUri), vertx, logger,
+				db = new Neo4jRest(new URI(serverUri),  config.getBoolean("slave-readonly", false), vertx, logger,
 						config.getInteger("poolsize", 32));
 			} catch (URISyntaxException e) {
 				logger.error(e.getMessage(), e);

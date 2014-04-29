@@ -1,6 +1,8 @@
 package fr.wseduc.neo4j;
 
 import java.net.URI;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.Vertx;
@@ -16,15 +18,19 @@ import org.vertx.java.core.logging.Logger;
 public class Neo4jRest implements GraphDatabase {
 
 	private final HttpClient client;
+	private final boolean ro;
 	private final Logger logger;
 	private final String basePath;
+	private Pattern writingClausesPattern = Pattern.compile(
+			"(\\s+set\\s+|create\\s+|merge\\s+|delete\\s+|remove\\s+|foreach)", Pattern.CASE_INSENSITIVE);
 
-	public Neo4jRest(URI uri, Vertx vertx, Logger logger, int poolSize) {
+	public Neo4jRest(URI uri, boolean ro, Vertx vertx, Logger logger, int poolSize) {
 		this.client = vertx.createHttpClient()
 				.setHost(uri.getHost())
 				.setPort(uri.getPort())
 				.setMaxPoolSize(poolSize)
 				.setKeepAlive(false);
+		this.ro = ro;
 		String path = uri.getPath();
 		if (path != null && path.endsWith("/")) {
 			this.basePath  = path.substring(0, path.length() - 1);
@@ -44,7 +50,7 @@ public class Neo4jRest implements GraphDatabase {
 			.putString("query", query)
 			.putObject("params", params);
 		logger.debug(body.encode());
-		sendRequest("/cypher", body, new Handler<HttpClientResponse>() {
+		sendRequest("/cypher", body, true, new Handler<HttpClientResponse>() {
 
 			@Override
 			public void handle(final HttpClientResponse resp) {
@@ -243,10 +249,22 @@ public class Neo4jRest implements GraphDatabase {
 	}
 
 	private void sendRequest(String path, JsonElement body, final Handler<HttpClientResponse> handler) {
+		sendRequest(path, body, false, handler);
+	}
+
+	private void sendRequest(String path, JsonElement body, boolean checkReadOnly,
+		final Handler<HttpClientResponse> handler) {
 		HttpClientRequest req = client.post(basePath + path, handler);
 		req.headers()
 			.add("Content-Type", "application/json")
 			.add("Accept", "application/json; charset=UTF-8");
+		if (checkReadOnly && ro) {
+			String query = ((JsonObject) body).getString("query");
+			Matcher m = writingClausesPattern.matcher(query);
+			if (query != null && !m.find()) {
+				req.headers().add("Neo4j-Type", "readonly");
+			}
+		}
 		if (body.isArray()) {
 			req.end(body.asArray().encode());
 		} else {
