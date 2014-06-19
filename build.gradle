@@ -10,17 +10,13 @@ test {
 
 repositories {
   maven {
-    credentials {
-      username 'admin'
-      password 'We_1234'
-    }
-    url "http://maven.web-education.net:8081/nexus/content/groups/public"
+    url "http://maven.web-education.net/nexus/content/groups/public"
   }
 }
 
 def configurePom(def pom) {
 	pom.project {
-		description 'Neo4j Persitor BusMod for Vert.x'
+		description 'Neo4j Persistor BusMod for Vert.x'
 		inceptionYear '2013'
 		packaging 'zip'
 		url 'http://code.web-education.net/projects/one-core'
@@ -29,7 +25,7 @@ def configurePom(def pom) {
 			developer {
 				id 'dboissin'
 				name 'Damien BOISSIN'
-				email 'damien.boissin@web-educcation.net'
+				email 'damien.boissin@web-education.net'
 			}
 		}
 
