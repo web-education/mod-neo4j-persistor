@@ -29,8 +29,12 @@ public class Neo4jEmbedded implements GraphDatabase {
 		.newEmbeddedDatabaseBuilder(config.getString("datastore-path"));
 		JsonObject neo4jConfig = config.getObject("neo4j");
 		if (neo4jConfig != null) {
-			gdbb.setConfig(GraphDatabaseSettings.node_keys_indexable, neo4jConfig.getString("node_keys_indexable", ""))
-			.setConfig(GraphDatabaseSettings.node_auto_indexing, neo4jConfig.getString("node_auto_indexing", "false"));
+			gdbb.setConfig(GraphDatabaseSettings.node_keys_indexable,
+					neo4jConfig.getString("node_keys_indexable", ""));
+			gdbb.setConfig(GraphDatabaseSettings.node_auto_indexing,
+					neo4jConfig.getString("node_auto_indexing", "false"));
+			gdbb.setConfig(GraphDatabaseSettings.allow_store_upgrade,
+					neo4jConfig.getString("allow_store_upgrade", "true"));
 		}
 		gdb = gdbb.newGraphDatabase();
 		engine = new ExecutionEngine(gdb);
