@@ -6,13 +6,13 @@ import org.vertx.java.core.AsyncResult;
 import org.vertx.java.core.AsyncResultHandler;
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.eventbus.Message;
+import org.vertx.java.core.json.JsonArray;
 import org.vertx.java.core.json.JsonObject;
 import org.vertx.testtools.TestVerticle;
 
 import java.io.IOException;
 
-import static org.vertx.testtools.VertxAssert.assertEquals;
-import static org.vertx.testtools.VertxAssert.testComplete;
+import static org.vertx.testtools.VertxAssert.*;
 
 public class Neo4jPersistorTest extends TestVerticle {
 
@@ -140,6 +140,22 @@ public class Neo4jPersistorTest extends TestVerticle {
 			}
 		});
 
+	}
+
+	@Test
+	public void testNullValue() {
+		String query = "CREATE (dalek:Person {name:'dalek'}) RETURN dalek.name as name, dalek.color as c;";
+		execute(query, null, new Handler<Message<JsonObject>>() {
+			@Override
+			public void handle(Message<JsonObject> message) {
+				assertEquals("ok", message.body().getString("status"));
+				JsonObject r = message.body().getArray("result").get(0);
+				assertEquals("dalek", r.getString("name"));
+				assertTrue(r.containsField("c"));
+				assertNull(r.getString("c"));
+				testComplete();
+			}
+		});
 	}
 
 }
