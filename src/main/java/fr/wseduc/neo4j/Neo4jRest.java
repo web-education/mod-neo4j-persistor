@@ -47,30 +47,31 @@ public class Neo4jRest implements GraphDatabase {
 			params = new JsonObject();
 		}
 		JsonObject body = new JsonObject()
-			.putString("query", query)
-			.putObject("params", params);
+				.putString("query", query)
+				.putObject("params", params);
 		logger.debug(body.encode());
 		sendRequest("/cypher", body, true, new Handler<HttpClientResponse>() {
 
 			@Override
 			public void handle(final HttpClientResponse resp) {
-				if (resp.statusCode() != 404 && resp.statusCode() != 500) {
-					resp.bodyHandler(new Handler<Buffer>() {
+				resp.bodyHandler(new Handler<Buffer>() {
 
-						@Override
-						public void handle(Buffer b) {
-							logger.debug(b.toString());
+					@Override
+					public void handle(Buffer b) {
+						logger.debug(b.toString());
+						if (resp.statusCode() != 404 && resp.statusCode() != 500) {
 							JsonObject json = new JsonObject(b.toString("UTF-8"));
 							if (resp.statusCode() == 200) {
 								handler.handle(new JsonObject().putArray("result", transformJson(json)));
 							} else {
 								handler.handle(json);
 							}
+						} else {
+							handler.handle(new JsonObject().putString("message",
+									resp.statusMessage() + " : " + b.toString()));
 						}
-					});
-				} else {
-					handler.handle(new JsonObject().putString("message", resp.statusMessage()));
-				}
+					}
+				});
 			}
 		});
 	}
@@ -81,43 +82,44 @@ public class Neo4jRest implements GraphDatabase {
 		int i = 0;
 		for (Object q : queries) {
 			JsonObject query = new JsonObject()
-				.putString("method", "POST")
-				.putString("to", "/cypher")
-				.putObject("body", (JsonObject) q)
-				.putNumber("id", i++);
+					.putString("method", "POST")
+					.putString("to", "/cypher")
+					.putObject("body", (JsonObject) q)
+					.putNumber("id", i++);
 			body.add(query);
 		}
 		logger.debug(body.encode());
 		sendRequest("/batch", body, new Handler<HttpClientResponse>() {
 			@Override
-			public void handle(HttpClientResponse resp) {
-				if (resp.statusCode() != 404 && resp.statusCode() != 500) {
-					resp.bodyHandler(new Handler<Buffer>() {
+			public void handle(final HttpClientResponse resp) {
+				resp.bodyHandler(new Handler<Buffer>() {
 
-						@Override
-						public void handle(Buffer b) {
-							logger.debug(b.toString());
+					@Override
+					public void handle(Buffer b) {
+						logger.debug(b.toString());
+						if (resp.statusCode() != 404 && resp.statusCode() != 500) {
 							JsonArray json = new JsonArray(b.toString("UTF-8"));
 							JsonArray out = new JsonArray();
 							for (Object j : json) {
 								JsonObject qr = (JsonObject) j;
 								out.add(new JsonObject().putArray("result",
 										transformJson(qr.getObject("body", new JsonObject())))
-									.putNumber("idx", qr.getNumber("id")));
+										.putNumber("idx", qr.getNumber("id")));
 							}
 							handler.handle(new JsonObject().putArray("results", out));
+						} else {
+							handler.handle(new JsonObject().putString("message",
+									resp.statusMessage() + " : " + b.toString()));
 						}
-					});
-				} else {
-					handler.handle(new JsonObject().putString("message", resp.statusMessage()));
-				}
+					}
+				});
 			}
 		});
 	}
 
 	@Override
 	public void executeTransaction(JsonArray statements, Integer transactionId,
-			boolean commit, final Handler<JsonObject> handler) {
+								   boolean commit, final Handler<JsonObject> handler) {
 		String uri = "/transaction";
 		if (transactionId != null) {
 			uri += "/" +transactionId;
@@ -127,13 +129,13 @@ public class Neo4jRest implements GraphDatabase {
 		}
 		sendRequest(uri, new JsonObject().putArray("statements", statements), new Handler<HttpClientResponse>() {
 			@Override
-			public void handle(HttpClientResponse resp) {
-				if (resp.statusCode() != 404 && resp.statusCode() != 500) {
-					resp.bodyHandler(new Handler<Buffer>() {
+			public void handle(final HttpClientResponse resp) {
+				resp.bodyHandler(new Handler<Buffer>() {
 
-						@Override
-						public void handle(Buffer b) {
-							logger.debug(b.toString());
+					@Override
+					public void handle(Buffer b) {
+						logger.debug(b.toString());
+						if (resp.statusCode() != 404 && resp.statusCode() != 500) {
 							JsonObject json = new JsonObject(b.toString("UTF-8"));
 							JsonArray results = json.getArray("results");
 							if (json.getArray("errors", new JsonArray()).size() == 0 &&
@@ -157,11 +159,12 @@ public class Neo4jRest implements GraphDatabase {
 								handler.handle(new JsonObject().putString("message",
 										json.getArray("errors", new JsonArray()).encode()));
 							}
+						} else {
+							handler.handle(new JsonObject().putString("message",
+									resp.statusMessage() + " : " + b.toString()));
 						}
-					});
-				} else {
-					handler.handle(new JsonObject().putString("message", resp.statusMessage()));
-				}
+					}
+				});
 			}
 		});
 	}
@@ -175,13 +178,13 @@ public class Neo4jRest implements GraphDatabase {
 	public void rollbackTransaction(int transactionId, final Handler<JsonObject> handler) {
 		HttpClientRequest req = client.delete(basePath + "/transaction/" + transactionId, new Handler<HttpClientResponse>() {
 			@Override
-			public void handle(HttpClientResponse resp) {
-				if (resp.statusCode() != 404 && resp.statusCode() != 500) {
-					resp.bodyHandler(new Handler<Buffer>() {
+			public void handle(final HttpClientResponse resp) {
+				resp.bodyHandler(new Handler<Buffer>() {
 
-						@Override
-						public void handle(Buffer b) {
-							logger.debug(b.toString());
+					@Override
+					public void handle(Buffer b) {
+						logger.debug(b.toString());
+						if (resp.statusCode() != 404 && resp.statusCode() != 500) {
 							JsonObject json = new JsonObject(b.toString("UTF-8"));
 							if (json.getArray("errors", new JsonArray()).size() == 0) {
 								json.removeField("errors");
@@ -190,11 +193,11 @@ public class Neo4jRest implements GraphDatabase {
 								handler.handle(new JsonObject().putString("message",
 										json.getArray("errors", new JsonArray()).encode()));
 							}
+						} else {
+							handler.handle(new JsonObject().putString("message", resp.statusMessage()));
 						}
-					});
-				} else {
-					handler.handle(new JsonObject().putString("message", resp.statusMessage()));
-				}
+					}
+				});
 			}
 		});
 		req.headers().add("Accept", "application/json; charset=UTF-8");
@@ -253,11 +256,11 @@ public class Neo4jRest implements GraphDatabase {
 	}
 
 	private void sendRequest(String path, JsonElement body, boolean checkReadOnly,
-		final Handler<HttpClientResponse> handler) {
+							 final Handler<HttpClientResponse> handler) {
 		HttpClientRequest req = client.post(basePath + path, handler);
 		req.headers()
-			.add("Content-Type", "application/json")
-			.add("Accept", "application/json; charset=UTF-8");
+				.add("Content-Type", "application/json")
+				.add("Accept", "application/json; charset=UTF-8");
 		if (checkReadOnly && ro) {
 			String query = ((JsonObject) body).getString("query");
 			Matcher m = writingClausesPattern.matcher(query);
