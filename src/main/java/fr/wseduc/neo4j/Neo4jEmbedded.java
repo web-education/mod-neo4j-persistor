@@ -178,17 +178,49 @@ public class Neo4jEmbedded implements GraphDatabase {
 
 	private void propertyToJson(JsonObject jsonRow, String column, Object v) {
 		if (v instanceof Iterable) {
-			jsonRow.putArray(column, new JsonArray((List<Object>) v));
+			jsonRow.putArray(column, iterableToJsonArray((Iterable) v));
 		} else if (v != null && v.getClass().isArray()) {
-			jsonRow.putArray(column, new JsonArray((Object[]) v));
+			jsonRow.putArray(column, arrayToJsonArray((Object[]) v));
 		} else if (v instanceof Boolean) {
 			jsonRow.putBoolean(column, (Boolean) v);
-    } else if (v instanceof Number) {
-      jsonRow.putNumber(column, (Number) v);
+		} else if (v instanceof Number) {
+			jsonRow.putNumber(column, (Number) v);
 		} else {
 			String value = (v == null) ? "" : v.toString();
 			jsonRow.putString(column, value);
 		}
+	}
+
+	private JsonArray iterableToJsonArray(Iterable i) {
+		JsonArray a = new JsonArray();
+		for (Object o : i) {
+			if (o instanceof Iterable) {
+				JsonArray r = iterableToJsonArray((Iterable) o);
+				a.addArray(r);
+			} else if (o != null && o.getClass().isArray()) {
+				JsonArray r = arrayToJsonArray((Object[]) o);
+				a.addArray(r);
+			} else {
+				a.add(o);
+			}
+		}
+		return a;
+	}
+
+	private JsonArray arrayToJsonArray(Object[] i) {
+		JsonArray a = new JsonArray();
+		for (Object o : i) {
+			if (o instanceof Iterable) {
+				JsonArray r = iterableToJsonArray((Iterable) o);
+				a.addArray(r);
+			} else if (o != null && o.getClass().isArray()) {
+				JsonArray r = arrayToJsonArray((Object[]) o);
+				a.addArray(r);
+			} else {
+				a.add(o);
+			}
+		}
+		return a;
 	}
 
 	private boolean isNodeArray(Object o) {
