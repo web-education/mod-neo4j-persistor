@@ -16,10 +16,11 @@ repositories {
 
 def configurePom(def pom) {
 	pom.project {
+    name 'mod-neo4j-persistor'
 		description 'Neo4j Persistor BusMod for Vert.x'
 		inceptionYear '2013'
 		packaging 'zip'
-		url 'http://code.web-education.net/projects/one-core'
+		url 'https://github.com/web-education/mod-neo4j-persistor'
 
 		developers {
 			developer {
@@ -30,7 +31,9 @@ def configurePom(def pom) {
 		}
 
 		scm {
-			url 'git@github.com:web-education/mod-neo4j-persistor.git'
+			connection 'scm:git:ssh://git@github.com:web-education/mod-neo4j-persistor.git'
+      developerConnection 'scm:git:ssh://git@github.com:web-education/mod-neo4j-persistor.git'
+			url 'https://github.com/web-education/mod-neo4j-persistor'
 		}
 
 		licenses {
