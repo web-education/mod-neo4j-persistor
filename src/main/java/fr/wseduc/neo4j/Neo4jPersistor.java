@@ -46,7 +46,7 @@ public class Neo4jPersistor extends BusModBase implements Handler<Message<JsonOb
 			db = new Neo4jEmbedded(config, logger);
 		}
 
-		eb.registerHandler(config.getString("address"),this);
+		eb.registerHandler(config.getString("address", "neo4j.persistor"),this);
 		logger.info("BusModBase: Neo4jPersistor starts on address: " + config.getString("address"));
 	}
 
