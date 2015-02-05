@@ -218,6 +218,8 @@ public class Neo4jEmbedded implements GraphDatabase {
 			} else if (o != null && o.getClass().isArray()) {
 				JsonArray r = arrayToJsonArray((Object[]) o);
 				a.addArray(r);
+			} else if (o instanceof Map) {
+				a.add(new JsonObject((Map<String, Object>) o));
 			} else {
 				a.add(o);
 			}
@@ -234,6 +236,8 @@ public class Neo4jEmbedded implements GraphDatabase {
 			} else if (o != null && o.getClass().isArray()) {
 				JsonArray r = arrayToJsonArray((Object[]) o);
 				a.addArray(r);
+			} else if (o instanceof Map) {
+				a.add(new JsonObject((Map<String, Object>) o));
 			} else {
 				a.add(o);
 			}
