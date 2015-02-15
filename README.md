@@ -39,6 +39,11 @@ Let's take a look at each field in turn:
 * `server-uri` uri of the Neo4j instance.
 * `pool_size` The number of socket connections the module instance should maintain to the Neo4j server. Default is 32.
 
+#### HA
+
+If you want to use the rest mode with Neo4j cluster. You can specify all server address. The persistor manage the check and change of master or slave.
+For example : `"server-uris": ["http://10.13.2.244:7474/db/data/","http://10.13.2.245:7474/db/data/","http://10.13.2.246:7474/db/data/"]`
+
 ### Mode embedded
 
 The neo4j-persistor module takes the following configuration:
