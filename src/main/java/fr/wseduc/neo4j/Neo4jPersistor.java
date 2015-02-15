@@ -19,11 +19,11 @@
 package fr.wseduc.neo4j;
 
 import java.net.URI;
-import java.net.URISyntaxException;
 
 import org.vertx.java.busmods.BusModBase;
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.eventbus.Message;
+import org.vertx.java.core.json.JsonArray;
 import org.vertx.java.core.json.JsonObject;
 
 
@@ -34,12 +34,22 @@ public class Neo4jPersistor extends BusModBase implements Handler<Message<JsonOb
 	@Override
 	public void start() {
 		super.start();
+		JsonArray serverUris = config.getArray("server-uris");
 		String serverUri = config.getString("server-uri");
-		if (serverUri != null && !serverUri.trim().isEmpty()) {
+		if (serverUris == null && serverUri != null) {
+			serverUris = new JsonArray().add(serverUri);
+		}
+
+		if (serverUris != null) {
 			try {
-				db = new Neo4jRest(new URI(serverUri),  config.getBoolean("slave-readonly", false), vertx, logger,
+				URI[] uris = new URI[serverUris.size()];
+				for (int i = 0; i < serverUris.size(); i++) {
+					uris[i] = new URI(serverUris.<String>get(i));
+				}
+				db = new Neo4jRest(uris, config.getBoolean("slave-readonly", false), vertx, logger,
+						config.getLong("checkDelay", 3000l),
 						config.getInteger("poolsize", 32));
-			} catch (URISyntaxException e) {
+			} catch (Exception e) {
 				logger.error(e.getMessage(), e);
 			}
 		} else {
