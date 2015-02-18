@@ -35,6 +35,8 @@ public interface GraphDatabase {
 
 	void rollbackTransaction(int transactionId, Handler<JsonObject> handler);
 
+	void unmanagedExtension(String method, String uri, String body, Handler<JsonObject> handler);
+
 	void close();
 
 }

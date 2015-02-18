@@ -144,6 +144,11 @@ public class Neo4jEmbedded implements GraphDatabase {
 	}
 
 	@Override
+	public void unmanagedExtension(String method, String uri, String body, Handler<JsonObject> handler) {
+		handler.handle(new JsonObject().putString("message", "Not implemented !"));
+	}
+
+	@Override
 	public void close() {
 		if (gdb != null) {
 			gdb.shutdown();

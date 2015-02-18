@@ -238,6 +238,36 @@ public class Neo4jRest implements GraphDatabase {
 	}
 
 	@Override
+	public void unmanagedExtension(String method, String uri, String body, final Handler<JsonObject> handler) {
+		try {
+			HttpClientRequest req = nodeManager.getClient().request(method, uri,
+					new Handler<HttpClientResponse>() {
+				@Override
+				public void handle(final HttpClientResponse response) {
+					response.bodyHandler(new Handler<Buffer>() {
+						@Override
+						public void handle(Buffer buffer) {
+							if (response.statusCode() <= 200 && response.statusCode() < 300) {
+								handler.handle(new JsonObject().putString("result", buffer.toString()));
+							} else {
+								handler.handle((new JsonObject().putString("message",
+										response.statusMessage()  + " : " + buffer.toString())));
+							}
+						}
+					});
+				}
+			});
+			if (body != null) {
+				req.end(body);
+			} else {
+				req.end();
+			}
+		} catch (Neo4jConnectionException e) {
+			ExceptionUtils.exceptionToJson(e);
+		}
+	}
+
+	@Override
 	public void close() {
 		nodeManager.close();
 	}

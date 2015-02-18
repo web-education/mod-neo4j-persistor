@@ -86,9 +86,23 @@ public class Neo4jPersistor extends BusModBase implements Handler<Message<JsonOb
 			case "rollbackTransaction" :
 				rollbackTransaction(m);
 				break;
+			case "unmanagedExtension":
+				unmanagedExtension(m);
+				break;
 			default :
 				sendError(m, "Invalid or missing action");
 		}
+	}
+
+	private void unmanagedExtension(Message<JsonObject> m) {
+		String method = m.body().getString("method");
+		String uri = m.body().getString("uri");
+		String body = m.body().getString("body");
+		if (method == null || uri == null || method.trim().isEmpty() || uri.trim().isEmpty()) {
+			sendError(m, "Invalid attributes.");
+			return;
+		}
+		db.unmanagedExtension(method, uri, body, resultHandler(m));
 	}
 
 	private void executeBatch(Message<JsonObject> m) {
