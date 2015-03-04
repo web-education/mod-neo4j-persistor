@@ -25,10 +25,12 @@ import org.neo4j.cypher.javacompat.ExecutionEngine;
 import org.neo4j.cypher.javacompat.ExecutionResult;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.factory.GraphDatabaseBuilder;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 import org.neo4j.graphdb.factory.GraphDatabaseSettings;
+import org.neo4j.graphdb.index.Index;
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.json.JsonArray;
 import org.vertx.java.core.json.JsonObject;
@@ -48,13 +50,38 @@ public class Neo4jEmbedded implements GraphDatabase {
 		JsonObject neo4jConfig = config.getObject("neo4j");
 		if (neo4jConfig != null) {
 			gdbb.setConfig(GraphDatabaseSettings.node_keys_indexable,
-					neo4jConfig.getString("node_keys_indexable", ""));
+					neo4jConfig.getString("node_keys_indexable"));
 			gdbb.setConfig(GraphDatabaseSettings.node_auto_indexing,
 					neo4jConfig.getString("node_auto_indexing", "false"));
+			gdbb.setConfig(GraphDatabaseSettings.relationship_keys_indexable,
+					neo4jConfig.getString("relationship_keys_indexable"));
+			gdbb.setConfig(GraphDatabaseSettings.relationship_auto_indexing,
+					neo4jConfig.getString("relationship_auto_indexing", "false"));
 			gdbb.setConfig(GraphDatabaseSettings.allow_store_upgrade,
 					neo4jConfig.getString("allow_store_upgrade", "true"));
 		}
 		gdb = gdbb.newGraphDatabase();
+		if (neo4jConfig != null) {
+			JsonArray legacyIndexes = neo4jConfig.getArray("legacy-indexes");
+			if (legacyIndexes != null && legacyIndexes.size() > 0) {
+				try (Transaction tx = gdb.beginTx()) {
+					for (Object o : legacyIndexes) {
+						if (!(o instanceof JsonObject)) continue;
+						JsonObject j = (JsonObject) o;
+						if ("node".equals(j.getString("for"))) {
+							Index<Node> i = gdb.index().forNodes(j.getString("name"));
+							gdb.index().setConfiguration(i, "type", j.getString("type", "exact"));
+						} else if ("relationship".equals(j.getString("for"))) {
+							Index<Relationship> i = gdb.index().forRelationships(j.getString("name"));
+							gdb.index().setConfiguration(i, "type", j.getString("type", "exact"));
+						}
+					}
+					tx.success();
+				} catch (Exception e) {
+					logger.error(e.getMessage(), e);
+				}
+			}
+		}
 		engine = new ExecutionEngine(gdb);
 		this.logger = logger;
 	}

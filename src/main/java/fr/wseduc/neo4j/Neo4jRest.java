@@ -44,7 +44,8 @@ public class Neo4jRest implements GraphDatabase {
 	private Pattern writingClausesPattern = Pattern.compile(
 			"(\\s+set\\s+|create\\s+|merge\\s+|delete\\s+|remove\\s+|foreach)", Pattern.CASE_INSENSITIVE);
 
-	public Neo4jRest(URI[] uris, boolean ro, Vertx vertx, Logger logger, long checkDelay, int poolSize) {
+	public Neo4jRest(URI[] uris, boolean ro, Vertx vertx, Logger logger, long checkDelay, int poolSize,
+			JsonObject neo4jConfig) {
 		nodeManager = new Neo4jRestNodeClient(uris, vertx, checkDelay, poolSize);
 		this.ro = ro;
 		String path = uris[0].getPath();
@@ -54,6 +55,37 @@ public class Neo4jRest implements GraphDatabase {
 			this.basePath = path;
 		}
 		this.logger = logger;
+		if (neo4jConfig != null) {
+			JsonArray legacyIndexes = neo4jConfig.getArray("legacy-indexes");
+			if (legacyIndexes != null && legacyIndexes.size() > 0) {
+				for (Object o : legacyIndexes) {
+					if (!(o instanceof JsonObject)) continue;
+					JsonObject j = (JsonObject) o;
+					createIndex(j);
+				}
+			}
+		}
+	}
+
+	private void createIndex(final JsonObject j) {
+		try {
+			final HttpClientRequest req = nodeManager.getClient()
+					.post("/db/data/index/" + j.getString("for"), new Handler<HttpClientResponse>() {
+				@Override
+				public void handle(HttpClientResponse event) {
+					if (event.statusCode() != 200) {
+						logger.error("Error creating index " + j.encode());
+					}
+				}
+			});
+			JsonObject body = new JsonObject().putString("name", j.getString("name"));
+			body.putObject("config", new JsonObject()
+					.putString("type", j.getString("type", "exact"))
+					.putString("provider", "lucene"));
+			req.end(body.encode());
+		} catch (Neo4jConnectionException e) {
+			logger.error(e.getMessage(), e);
+		}
 	}
 
 	@Override
