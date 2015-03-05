@@ -31,6 +31,8 @@ import org.neo4j.graphdb.factory.GraphDatabaseBuilder;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 import org.neo4j.graphdb.factory.GraphDatabaseSettings;
 import org.neo4j.graphdb.index.Index;
+import org.neo4j.graphdb.index.IndexManager;
+import org.neo4j.helpers.collection.MapUtil;
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.json.JsonArray;
 import org.vertx.java.core.json.JsonObject;
@@ -69,11 +71,11 @@ public class Neo4jEmbedded implements GraphDatabase {
 						if (!(o instanceof JsonObject)) continue;
 						JsonObject j = (JsonObject) o;
 						if ("node".equals(j.getString("for"))) {
-							Index<Node> i = gdb.index().forNodes(j.getString("name"));
-							gdb.index().setConfiguration(i, "type", j.getString("type", "exact"));
+							gdb.index().forNodes(j.getString("name"), MapUtil.stringMap(
+									IndexManager.PROVIDER, "lucene", "type", j.getString("type", "exact")));
 						} else if ("relationship".equals(j.getString("for"))) {
-							Index<Relationship> i = gdb.index().forRelationships(j.getString("name"));
-							gdb.index().setConfiguration(i, "type", j.getString("type", "exact"));
+							gdb.index().forRelationships(j.getString("name"), MapUtil.stringMap(
+									IndexManager.PROVIDER, "lucene", "type", j.getString("type", "exact")));
 						}
 					}
 					tx.success();
