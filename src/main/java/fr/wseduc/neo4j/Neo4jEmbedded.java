@@ -238,11 +238,33 @@ public class Neo4jEmbedded implements GraphDatabase {
 		} else if (v instanceof Number) {
 			jsonRow.putNumber(column, (Number) v);
 		} else if (v instanceof Map) {
-			jsonRow.putObject(column, new JsonObject((Map<String, Object>) v));
+			jsonRow.putObject(column, mapToJsonObject((Map<String, Object>) v));
 		} else {
 			String value = (v == null) ? "" : v.toString();
 			jsonRow.putString(column, value);
 		}
+	}
+
+	private JsonObject mapToJsonObject(Map<String, Object> v) {
+		JsonObject j = new JsonObject();
+		for (Map.Entry<String, Object> e : v.entrySet()) {
+			final Object eValue = e.getValue();
+			if (eValue instanceof Map) {
+				j.putObject(e.getKey(), mapToJsonObject((Map<String, Object>) eValue));
+			} else if (eValue instanceof Iterable) {
+				j.putArray(e.getKey(), iterableToJsonArray((Iterable) eValue));
+			} else if (eValue != null && eValue.getClass().isArray()) {
+				j.putArray(e.getKey(), arrayToJsonArray((Object[]) eValue));
+			} else if (eValue instanceof Boolean) {
+				j.putBoolean(e.getKey(), (Boolean) eValue);
+			} else if (eValue instanceof Number) {
+				j.putNumber(e.getKey(), (Number) eValue);
+			} else {
+				String value = (eValue == null) ? "" : eValue.toString();
+				j.putString(e.getKey(), value);
+			}
+		}
+		return j;
 	}
 
 	private JsonArray iterableToJsonArray(Iterable i) {
@@ -255,7 +277,7 @@ public class Neo4jEmbedded implements GraphDatabase {
 				JsonArray r = arrayToJsonArray((Object[]) o);
 				a.addArray(r);
 			} else if (o instanceof Map) {
-				a.add(new JsonObject((Map<String, Object>) o));
+				a.add(mapToJsonObject((Map<String, Object>) o));
 			} else {
 				a.add(o);
 			}
@@ -273,7 +295,7 @@ public class Neo4jEmbedded implements GraphDatabase {
 				JsonArray r = arrayToJsonArray((Object[]) o);
 				a.addArray(r);
 			} else if (o instanceof Map) {
-				a.add(new JsonObject((Map<String, Object>) o));
+				a.add(mapToJsonObject((Map<String, Object>) o));
 			} else {
 				a.add(o);
 			}
