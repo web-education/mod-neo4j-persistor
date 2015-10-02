@@ -42,7 +42,7 @@ public class Neo4jRestNodeClient {
 	private final Random rnd;
 	private static final Logger logger = LoggerFactory.getLogger(Neo4jRestNodeClient.class);
 
-	public Neo4jRestNodeClient(URI[] uris, Vertx vertx, long delay, int poolSize) {
+	public Neo4jRestNodeClient(URI[] uris, Vertx vertx, long delay, int poolSize, boolean keepAlive) {
 		this.vertx = vertx;
 		clients = new HttpClient[uris.length];
 		for (int i = 0; i < uris.length; i++) {
@@ -50,7 +50,7 @@ public class Neo4jRestNodeClient {
 					.setHost(uris[i].getHost())
 					.setPort(uris[i].getPort())
 					.setMaxPoolSize(poolSize)
-					.setKeepAlive(false);
+					.setKeepAlive(keepAlive);
 		}
 
 		if (uris.length > 1) {

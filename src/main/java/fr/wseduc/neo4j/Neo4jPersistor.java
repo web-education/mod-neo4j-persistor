@@ -49,6 +49,7 @@ public class Neo4jPersistor extends BusModBase implements Handler<Message<JsonOb
 				db = new Neo4jRest(uris, config.getBoolean("slave-readonly", false), vertx, logger,
 						config.getLong("checkDelay", 3000l),
 						config.getInteger("poolsize", 32),
+						config.getBoolean("keepAlive", true),
 						config.getObject("neo4j"));
 			} catch (Exception e) {
 				logger.error(e.getMessage(), e);

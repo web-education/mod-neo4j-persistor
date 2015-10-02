@@ -45,8 +45,8 @@ public class Neo4jRest implements GraphDatabase {
 			"(\\s+set\\s+|create\\s+|merge\\s+|delete\\s+|remove\\s+|foreach)", Pattern.CASE_INSENSITIVE);
 
 	public Neo4jRest(URI[] uris, boolean ro, Vertx vertx, Logger logger, long checkDelay, int poolSize,
-			JsonObject neo4jConfig) {
-		nodeManager = new Neo4jRestNodeClient(uris, vertx, checkDelay, poolSize);
+			boolean keepAlive, JsonObject neo4jConfig) {
+		nodeManager = new Neo4jRestNodeClient(uris, vertx, checkDelay, poolSize, keepAlive);
 		this.ro = ro;
 		String path = uris[0].getPath();
 		if (path != null && path.endsWith("/")) {
