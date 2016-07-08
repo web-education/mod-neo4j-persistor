@@ -25,12 +25,10 @@ import org.neo4j.cypher.javacompat.ExecutionEngine;
 import org.neo4j.cypher.javacompat.ExecutionResult;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.factory.GraphDatabaseBuilder;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 import org.neo4j.graphdb.factory.GraphDatabaseSettings;
-import org.neo4j.graphdb.index.Index;
 import org.neo4j.graphdb.index.IndexManager;
 import org.neo4j.helpers.collection.MapUtil;
 import org.vertx.java.core.Handler;
@@ -63,6 +61,7 @@ public class Neo4jEmbedded implements GraphDatabase {
 					neo4jConfig.getString("allow_store_upgrade", "true"));
 		}
 		gdb = gdbb.newGraphDatabase();
+		registerShutdownHook(gdb);
 		if (neo4jConfig != null) {
 			JsonArray legacyIndexes = neo4jConfig.getArray("legacy-indexes");
 			if (legacyIndexes != null && legacyIndexes.size() > 0) {
@@ -86,6 +85,18 @@ public class Neo4jEmbedded implements GraphDatabase {
 		}
 		engine = new ExecutionEngine(gdb);
 		this.logger = logger;
+	}
+
+	private static void registerShutdownHook( final GraphDatabaseService graphDb )	{
+		// Registers a shutdown hook for the Neo4j instance so that it
+		// shuts down nicely when the VM exits (even if you "Ctrl-C" the
+		// running application).
+		Runtime.getRuntime().addShutdownHook(new Thread(){
+			@Override
+			public void run() {
+				graphDb.shutdown();
+			}
+		});
 	}
 
 	@Override
